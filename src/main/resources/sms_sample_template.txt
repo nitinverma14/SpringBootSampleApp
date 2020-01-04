@@ -1,0 +1,2 @@
+Hi $name
+Have a good day, Its a sample template

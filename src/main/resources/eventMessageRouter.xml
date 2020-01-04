@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+  xmlns:int-http="http://www.springframework.org/schema/integration/http"
+  xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/integration
+    http://www.springframework.org/schema/integration/spring-integration.xsd
+    http://www.springframework.org/schema/integration/http
+    http://www.springframework.org/schema/integration/http/spring-integration-http.xsd">
+
+<int:channel id="bday">
+    <int:queue />
+</int:channel>
+
+<int:channel id="memchg">
+    <int:queue />
+</int:channel>
+
+<int:channel id="processCommChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="processUserPreferenceChannel">
+    <int:queue />
+</int:channel>
+
+<int:router input-channel="processEventChannel" expression="payload.actionID">
+    <int:mapping value="BDAY1" channel="bday" />
+    <int:mapping value="MEMCHG1" channel="memchg" />
+</int:router>
+<int:poller default="true" fixed-delay="50"/>
+<!-- 
+<int:recipient-list-router id="serviceRouter" input-channel="serviceRoutingChannel">
+    <int:recipient selector-expression="payload.dob == 100" channel="perfectchannel"/>
+    <int:recipient selector-expression="payload.score lt 100" channel="normalchannel"/>
+</int:recipient-list-router> -->
+
+<!-- <int:logging-channel-adapter id="loggitbday" log-full-message="true" channel="processCommChannel" /> -->
+<!-- <int:logging-channel-adapter id="loggitchang" log-full-message="true" channel="memchg" /> -->
+		<int:channel id="inputChannel"></int:channel> 
+<int:gateway service-interface="com.jarvis.consumer.EventMessageGateway"  
+  default-request-channel="processEventChannel" default-reply-channel="inputChannel"></int:gateway>  				
+	
+		
+<int:service-activator input-channel="bday"
+    ref="ruleEngineProcessor" method="getBdayRule" output-channel="processUserPreferenceChannel">
+</int:service-activator>
+
+<int:service-activator input-channel="memchg"
+    ref="ruleEngineProcessor" method="getBdayRule" output-channel="processUserPreferenceChannel">
+</int:service-activator>
+
+<int:service-activator input-channel="processUserPreferenceChannel"
+    ref="userPreferenceProcessor" method="setUserPreference" output-channel="processCommChannel">
+</int:service-activator>
+
+<bean class="com.jarvis.rule.RuleEngineProcessor" id="ruleEngineProcessor"/>
+
+<bean class="com.jarvis.user.preference.UserPreference" id="userPreferenceProcessor"/>
+
+<!-- <int:service-activator input-channel="memchg"
+    ref="springExample" method="memMsgPro">
+   
+</int:service-activator> -->
+<int:spel-property-accessors>
+    <bean id="jsonPropertyAccessor" class="org.springframework.integration.json.JsonPropertyAccessor"/>
+</int:spel-property-accessors>
+
+</beans>

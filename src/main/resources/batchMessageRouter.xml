@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+  xmlns:int-http="http://www.springframework.org/schema/integration/http"
+  xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/integration
+    http://www.springframework.org/schema/integration/spring-integration.xsd
+    http://www.springframework.org/schema/integration/http
+    http://www.springframework.org/schema/integration/http/spring-integration-http.xsd">
+
+<int:channel id="idCardChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="enrollChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="processCommBatchChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="processUserPreferenceBatchChannel">
+    <int:queue />
+</int:channel>
+
+<int:router input-channel="processBatchChannel" expression="payload.actionID">
+    <int:mapping value="IDCARD1" channel="idCardChannel" />
+    <int:mapping value="ENROLL1" channel="enrollChannel" />
+</int:router>
+<!-- <int:poller default="true" fixed-delay="50"/> -->
+<!-- 
+<int:recipient-list-router id="serviceRouter" input-channel="serviceRoutingChannel">
+    <int:recipient selector-expression="payload.dob == 100" channel="perfectchannel"/>
+    <int:recipient selector-expression="payload.score lt 100" channel="normalchannel"/>
+</int:recipient-list-router> -->
+
+<!-- <int:logging-channel-adapter id="logidcard" log-full-message="true" channel="processCommBatchChannel" />
+<int:logging-channel-adapter id="logenroll" log-full-message="true" channel="processCommBatchChannel" /> -->
+		<int:channel id="inputBatchChannel"></int:channel> 
+<int:gateway service-interface="com.jarvis.consumer.BatchMessageGateway"  
+  default-request-channel="processBatchChannel" default-reply-channel="inputBatchChannel"></int:gateway>  				
+	
+		
+<int:service-activator input-channel="idCardChannel"
+    ref="epmpUpdateProcessor" method="genarateIDCard" output-channel="processUserPreferenceBatchChannel">
+</int:service-activator>
+
+<int:service-activator input-channel="enrollChannel"
+    ref="epmpUpdateProcessor" method="enrollMember" output-channel="processUserPreferenceBatchChannel">
+</int:service-activator>
+
+<int:service-activator input-channel="processUserPreferenceBatchChannel"
+    ref="userPreferenceProcessor" method="setUserPreference" output-channel="processCommBatchChannel">
+</int:service-activator>
+
+<bean class="com.jarvis.epmp.EpmpUpdateProcessor" id="epmpUpdateProcessor"/>
+
+<!-- <bean class="com.jarvis.user.preference.UserPreference" id="userPreferenceProcessor"/> -->
+   
+<int:spel-property-accessors>
+    <bean id="jsonPropertyAccessor" class="org.springframework.integration.json.JsonPropertyAccessor"/>
+</int:spel-property-accessors>
+
+</beans>

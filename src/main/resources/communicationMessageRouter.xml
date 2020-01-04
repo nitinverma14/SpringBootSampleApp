@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+  xmlns:int-http="http://www.springframework.org/schema/integration/http"
+  xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/integration
+    http://www.springframework.org/schema/integration/spring-integration.xsd
+    http://www.springframework.org/schema/integration/http
+    http://www.springframework.org/schema/integration/http/spring-integration-http.xsd">
+
+<int:channel id="smsChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="emailChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="bothChannel">
+    <int:queue />
+</int:channel>
+
+<int:channel id="finalResponse">
+    <int:queue />
+</int:channel>
+
+<int:router input-channel="processCommBatchChannel" expression="payload.preference">
+    <int:mapping value="SMS" channel="smsChannel" />
+    <int:mapping value="EMAIL" channel="emailChannel" />
+    <int:mapping value="BOTH" channel="bothChannel" />
+</int:router>
+
+<int:router input-channel="processCommChannel" expression="payload.preference">
+    <int:mapping value="SMS" channel="smsChannel" />
+    <int:mapping value="EMAIL" channel="emailChannel" />
+    <int:mapping value="BOTH" channel="bothChannel" />
+</int:router>
+
+<int:service-activator input-channel="smsChannel"
+    ref="commProcessor" method="sendMessageToGateway" output-channel="finalResponse">
+</int:service-activator>
+
+<int:service-activator input-channel="emailChannel"
+    ref="commProcessor" method="emailMessageToGateway" output-channel="finalResponse">
+</int:service-activator>
+
+<int:service-activator input-channel="bothChannel"
+    ref="commProcessor" method="bothMessageToGateway" output-channel="finalResponse">
+</int:service-activator>
+
+<bean class="com.jarvis.channel.CommunicationGateway" id="commProcessor"/>
+
+<int:logging-channel-adapter id="logFinalStatus" log-full-message="true" channel="finalResponse" />
+   
+<int:spel-property-accessors>
+    <bean id="jsonPropertyAccessor" class="org.springframework.integration.json.JsonPropertyAccessor"/>
+</int:spel-property-accessors>
+
+</beans>
